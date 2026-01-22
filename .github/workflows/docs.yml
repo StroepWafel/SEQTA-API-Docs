@@ -30,9 +30,10 @@ jobs:
             -i seqta-api-openapi.yaml \
             -l html \
             -o docs
-
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4
+      
+      - name: Deploy Swagger HTML to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v6
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./docs
+
