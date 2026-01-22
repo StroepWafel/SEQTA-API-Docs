@@ -14,9 +14,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Disable Jekyll
-        run: touch docs/.nojekyll
-
       - name: Set up Java
         uses: actions/setup-java@v3
         with:
