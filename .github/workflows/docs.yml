@@ -27,7 +27,7 @@ jobs:
       - name: Generate HTML docs
         run: |
           java -jar swagger-codegen-cli.jar generate \
-            -i swagger.yaml \
+            -i seqta-api-openapi.yaml \
             -l html \
             -o docs
 
