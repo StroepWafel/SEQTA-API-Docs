@@ -3,24 +3,24 @@ name: Build and Deploy Swagger Docs
 on:
   push:
     branches:
-      - main   # Trigger on pushes to main
-  workflow_dispatch:   # Allow manual trigger
+      - main
+  workflow_dispatch:
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
+      - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Set up Java (required for swagger-codegen)
+      - name: Set up Java
         uses: actions/setup-java@v3
         with:
           distribution: temurin
           java-version: '17'
 
-      - name: Install swagger-codegen
+      - name: Download swagger-codegen
         run: |
           wget https://repo1.maven.org/maven2/io/swagger/swagger-codegen-cli/3.0.29/swagger-codegen-cli-3.0.29.jar -O swagger-codegen-cli.jar
 
