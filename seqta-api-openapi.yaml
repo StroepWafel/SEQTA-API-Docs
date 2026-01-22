@@ -1,0 +1,788 @@
+openapi: 3.0.3
+info:
+  title: SEQTA API
+  description: |
+    API documentation for SEQTA Learn student information system.
+    
+    This API provides access to student, teacher, and parent portals within the SEQTA platform.
+    All endpoints are prefixed with the school domain and user type (student, teacher, or parent).
+    
+    **Base URL Format:**
+    - Student: `https://<school-domain>/seqta/student/`
+    - Teacher: `https://<school-domain>/seqta/teacher/`
+    - Parent: `https://<school-domain>/seqta/parent/`
+    
+    **Authentication:**
+    The API uses session-based authentication. Users must be logged in through the web interface
+    and maintain an active session cookie.
+  version: 1.0.0
+  contact:
+    name: SEQTA Support
+    url: https://seqta.com.au
+  license:
+    name: Proprietary
+    url: https://seqta.com.au
+
+servers:
+  - url: https://<school-domain>/seqta/student
+    description: Student portal API
+  - url: https://<school-domain>/seqta/teacher
+    description: Teacher portal API
+  - url: https://<school-domain>/seqta/parent
+    description: Parent portal API
+
+tags:
+  - name: Files
+    description: File loading and resource management
+  - name: Dashboard
+    description: Dashboard and home page data
+  - name: Timetable
+    description: Class timetables and schedules
+  - name: Assessments
+    description: Assessments, assignments, and grades
+  - name: Resources
+    description: Learning resources and materials
+  - name: Notifications
+    description: Notifications and announcements
+  - name: Profile
+    description: User profile information
+
+paths:
+  /load/file:
+    get:
+      tags:
+        - Files
+      summary: Load a file or resource
+      description: |
+        Retrieves a file or resource by its UUID and type. This endpoint is used to load
+        various types of files including documents, images, and other resources.
+      operationId: loadFile
+      parameters:
+        - name: type
+          in: query
+          required: true
+          description: The type of file/resource to load
+          schema:
+            type: string
+            enum:
+              - document
+              - image
+              - resource
+              - attachment
+              - assignment
+            example: document
+        - name: file
+          in: query
+          required: true
+          description: The UUID of the file to load
+          schema:
+            type: string
+            format: uuid
+            example: "123e4567-e89b-12d3-a456-426614174000"
+        - name: format
+          in: query
+          required: false
+          description: Optional format parameter for file conversion
+          schema:
+            type: string
+            enum:
+              - pdf
+              - html
+              - json
+      responses:
+        '200':
+          description: File retrieved successfully
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+            image/png:
+              schema:
+                type: string
+                format: binary
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    description: File metadata and content
+            text/html:
+              schema:
+                type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security:
+        - sessionAuth: []
+
+  /dashboard:
+    get:
+      tags:
+        - Dashboard
+      summary: Get dashboard data
+      description: |
+        Retrieves dashboard information including recent activities, upcoming events,
+        notifications, and quick access items.
+      operationId: getDashboard
+      parameters:
+        - name: view
+          in: query
+          required: false
+          description: Dashboard view type
+          schema:
+            type: string
+            enum:
+              - default
+              - compact
+              - detailed
+            default: default
+      responses:
+        '200':
+          description: Dashboard data retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Dashboard'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security:
+        - sessionAuth: []
+
+  /timetable:
+    get:
+      tags:
+        - Timetable
+      summary: Get timetable
+      description: |
+        Retrieves the user's class timetable for a specified period.
+      operationId: getTimetable
+      parameters:
+        - name: week
+          in: query
+          required: false
+          description: Week number or date range
+          schema:
+            type: string
+            example: "2024-W01"
+        - name: startDate
+          in: query
+          required: false
+          description: Start date for timetable period (ISO 8601 format)
+          schema:
+            type: string
+            format: date
+            example: "2024-01-15"
+        - name: endDate
+          in: query
+          required: false
+          description: End date for timetable period (ISO 8601 format)
+          schema:
+            type: string
+            format: date
+            example: "2024-01-19"
+      responses:
+        '200':
+          description: Timetable retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Timetable'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security:
+        - sessionAuth: []
+
+  /assessments:
+    get:
+      tags:
+        - Assessments
+      summary: Get assessments
+      description: |
+        Retrieves a list of assessments, assignments, and grades for the user.
+      operationId: getAssessments
+      parameters:
+        - name: status
+          in: query
+          required: false
+          description: Filter by assessment status
+          schema:
+            type: string
+            enum:
+              - upcoming
+              - submitted
+              - graded
+              - overdue
+            example: upcoming
+        - name: subject
+          in: query
+          required: false
+          description: Filter by subject code or name
+          schema:
+            type: string
+            example: "MATH101"
+        - name: limit
+          in: query
+          required: false
+          description: Maximum number of results to return
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: offset
+          in: query
+          required: false
+          description: Number of results to skip for pagination
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: Assessments retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  assessments:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Assessment'
+                  total:
+                    type: integer
+                    description: Total number of assessments
+                  limit:
+                    type: integer
+                  offset:
+                    type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security:
+        - sessionAuth: []
+
+  /assessments/{assessmentId}:
+    get:
+      tags:
+        - Assessments
+      summary: Get assessment details
+      description: |
+        Retrieves detailed information about a specific assessment.
+      operationId: getAssessmentById
+      parameters:
+        - name: assessmentId
+          in: path
+          required: true
+          description: The unique identifier of the assessment
+          schema:
+            type: string
+            example: "123e4567-e89b-12d3-a456-426614174000"
+      responses:
+        '200':
+          description: Assessment details retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Assessment'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security:
+        - sessionAuth: []
+
+  /resources:
+    get:
+      tags:
+        - Resources
+      summary: Get learning resources
+      description: |
+        Retrieves learning resources and materials available to the user.
+      operationId: getResources
+      parameters:
+        - name: subject
+          in: query
+          required: false
+          description: Filter by subject code or name
+          schema:
+            type: string
+            example: "MATH101"
+        - name: type
+          in: query
+          required: false
+          description: Filter by resource type
+          schema:
+            type: string
+            enum:
+              - document
+              - video
+              - link
+              - assignment
+              - rubric
+            example: document
+        - name: search
+          in: query
+          required: false
+          description: Search term to filter resources
+          schema:
+            type: string
+            example: "algebra"
+      responses:
+        '200':
+          description: Resources retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  resources:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Resource'
+                  total:
+                    type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security:
+        - sessionAuth: []
+
+  /notifications:
+    get:
+      tags:
+        - Notifications
+      summary: Get notifications
+      description: |
+        Retrieves notifications and announcements for the user.
+      operationId: getNotifications
+      parameters:
+        - name: unread
+          in: query
+          required: false
+          description: Filter to show only unread notifications
+          schema:
+            type: boolean
+            default: false
+        - name: limit
+          in: query
+          required: false
+          description: Maximum number of notifications to return
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: Notifications retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  notifications:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Notification'
+                  unreadCount:
+                    type: integer
+                    description: Number of unread notifications
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security:
+        - sessionAuth: []
+
+  /profile:
+    get:
+      tags:
+        - Profile
+      summary: Get user profile
+      description: |
+        Retrieves the current user's profile information.
+      operationId: getProfile
+      responses:
+        '200':
+          description: Profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security:
+        - sessionAuth: []
+
+components:
+  securitySchemes:
+    sessionAuth:
+      type: apiKey
+      in: cookie
+      name: sessionid
+      description: |
+        Session-based authentication using cookies. Users must authenticate through
+        the web interface to obtain a valid session cookie.
+
+  schemas:
+    Dashboard:
+      type: object
+      properties:
+        user:
+          $ref: '#/components/schemas/UserInfo'
+        recentActivities:
+          type: array
+          items:
+            $ref: '#/components/schemas/Activity'
+        upcomingEvents:
+          type: array
+          items:
+            $ref: '#/components/schemas/Event'
+        notifications:
+          type: array
+          items:
+            $ref: '#/components/schemas/Notification'
+        quickLinks:
+          type: array
+          items:
+            type: object
+            properties:
+              title:
+                type: string
+              url:
+                type: string
+              icon:
+                type: string
+
+    Timetable:
+      type: object
+      properties:
+        week:
+          type: string
+          description: Week identifier (e.g., "2024-W01")
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        periods:
+          type: array
+          items:
+            $ref: '#/components/schemas/TimetablePeriod'
+
+    TimetablePeriod:
+      type: object
+      properties:
+        day:
+          type: string
+          enum:
+            - Monday
+            - Tuesday
+            - Wednesday
+            - Thursday
+            - Friday
+            - Saturday
+            - Sunday
+        period:
+          type: integer
+          description: Period number
+        startTime:
+          type: string
+          format: time
+          example: "09:00"
+        endTime:
+          type: string
+          format: time
+          example: "10:00"
+        subject:
+          type: string
+        subjectCode:
+          type: string
+        teacher:
+          type: string
+        room:
+          type: string
+        class:
+          type: string
+
+    Assessment:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+        subject:
+          type: string
+        subjectCode:
+          type: string
+        dueDate:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum:
+            - draft
+            - assigned
+            - in_progress
+            - submitted
+            - graded
+            - overdue
+        grade:
+          type: string
+          nullable: true
+        maxGrade:
+          type: string
+          nullable: true
+        percentage:
+          type: number
+          format: float
+          nullable: true
+        attachments:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+              name:
+                type: string
+              type:
+                type: string
+              size:
+                type: integer
+
+    Resource:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+        type:
+          type: string
+          enum:
+            - document
+            - video
+            - link
+            - assignment
+            - rubric
+        subject:
+          type: string
+        subjectCode:
+          type: string
+        url:
+          type: string
+          format: uri
+        fileId:
+          type: string
+          format: uuid
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Notification:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        message:
+          type: string
+        type:
+          type: string
+          enum:
+            - announcement
+            - assignment
+            - grade
+            - event
+            - general
+        read:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        link:
+          type: string
+          format: uri
+          nullable: true
+
+    Profile:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        firstName:
+          type: string
+        lastName:
+          type: string
+        email:
+          type: string
+          format: email
+        role:
+          type: string
+          enum:
+            - student
+            - teacher
+            - parent
+        studentId:
+          type: string
+          nullable: true
+        yearLevel:
+          type: string
+          nullable: true
+        house:
+          type: string
+          nullable: true
+        photo:
+          type: string
+          format: uri
+          nullable: true
+
+    UserInfo:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        role:
+          type: string
+
+    Activity:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        link:
+          type: string
+          format: uri
+          nullable: true
+
+    Event:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+        startDate:
+          type: string
+          format: date-time
+        endDate:
+          type: string
+          format: date-time
+        location:
+          type: string
+          nullable: true
+        type:
+          type: string
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error code or identifier
+        message:
+          type: string
+          description: Human-readable error message
+        details:
+          type: object
+          description: Additional error details
+          additionalProperties: true
+
+  responses:
+    BadRequest:
+      description: Bad request - Invalid parameters or malformed request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "BAD_REQUEST"
+            message: "Invalid parameter: file UUID is required"
+
+    Unauthorized:
+      description: Unauthorized - Authentication required or session expired
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "UNAUTHORIZED"
+            message: "Authentication required. Please log in."
+
+    NotFound:
+      description: Not found - The requested resource does not exist
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "NOT_FOUND"
+            message: "The requested resource was not found"
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "INTERNAL_ERROR"
+            message: "An internal server error occurred"
+
