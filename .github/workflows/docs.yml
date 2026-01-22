@@ -1,4 +1,4 @@
-name: Build and Deploy Swagger Docs
+name: Build and Deploy API Docs
 
 on:
   push:
@@ -20,39 +20,45 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 1️⃣ Checkout the repo
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Set up Java
-        uses: actions/setup-java@v3
+      # 2️⃣ Set up Node.js for Redoc CLI
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
         with:
-          distribution: temurin
-          java-version: '17'
-      
-      - name: Download swagger-codegen CLI
+          node-version: '20'
+
+      # 3️⃣ Install Redoc CLI
+      - name: Install redoc-cli
+        run: npm install -g redoc-cli
+
+      # 4️⃣ Generate HTML API docs
+      - name: Generate Redoc HTML
         run: |
-          wget https://repo1.maven.org/maven2/io/swagger/codegen/v3/swagger-codegen-cli/3.0.71/swagger-codegen-cli-3.0.71.jar -O swagger-codegen-cli.jar
-      
-      - name: Generate HTML docs
-        run: |
-          java -jar swagger-codegen-cli.jar generate \
-            -i seqta-api-openapi.yaml \
-            -l html \
-            -o docs
-      
+          mkdir -p docs
+          redoc-cli bundle seqta-api-openapi.yaml -o docs/index.html
+
+      # 5️⃣ Disable Jekyll
+      - name: Disable Jekyll
+        run: touch docs/.nojekyll
+
+      # 6️⃣ Setup GitHub Pages
       - name: Setup Pages
         uses: actions/configure-pages@v5
-      - name: Upload artifact
+
+      # 7️⃣ Upload artifact (docs folder)
+      - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # Upload entire repository
-          path: './docs/'
+          path: 'docs'
+
+      # 8️⃣ Deploy to GitHub Pages
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
 
-      - name: Show page URL
-        run: echo "Docs are live at ${{ steps.deployment.outputs.page_url }}"
-      
-
-
+      # 9️⃣ Print deployed page URL
+      - name: Show Pages URL
+        run: echo "API docs are live at ${{ steps.deployment.outputs.page_url }}"
