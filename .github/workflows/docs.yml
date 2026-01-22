@@ -18,12 +18,12 @@ jobs:
         uses: actions/setup-java@v3
         with:
           distribution: temurin
-          java-version: '17'
-
-      - name: Download swagger-codegen
+          java-version: '17`
+      
+      - name: Download swagger-codegen CLI
         run: |
-          wget https://repo1.maven.org/maven2/io/swagger/swagger-codegen-cli/3.0.29/swagger-codegen-cli-3.0.29.jar -O swagger-codegen-cli.jar
-
+          wget https://repo1.maven.org/maven2/io/swagger/codegen/v3/swagger-codegen-cli/3.0.71/swagger-codegen-cli-3.0.71.jar -O swagger-codegen-cli.jar
+      
       - name: Generate HTML docs
         run: |
           java -jar swagger-codegen-cli.jar generate \
