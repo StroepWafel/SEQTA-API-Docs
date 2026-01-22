@@ -51,4 +51,8 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@v4
 
+      - name: Show page URL
+      run: echo "Docs are live at ${{ steps.deployment.outputs.page_url }}"
+      
+
 
