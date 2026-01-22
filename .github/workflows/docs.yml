@@ -1,0 +1,38 @@
+name: Build and Deploy Swagger Docs
+
+on:
+  push:
+    branches:
+      - main   # Trigger on pushes to main
+  workflow_dispatch:   # Allow manual trigger
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Set up Java (required for swagger-codegen)
+        uses: actions/setup-java@v3
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install swagger-codegen
+        run: |
+          wget https://repo1.maven.org/maven2/io/swagger/swagger-codegen-cli/3.0.29/swagger-codegen-cli-3.0.29.jar -O swagger-codegen-cli.jar
+
+      - name: Generate HTML docs
+        run: |
+          java -jar swagger-codegen-cli.jar generate \
+            -i swagger.yaml \
+            -l html \
+            -o docs
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v7
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs
